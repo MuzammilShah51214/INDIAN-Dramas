@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tashan E Ishq - Fixed Top Player</title>
+    <style>
+        :root {
+            --pink: #ff416c;
+            --neon-blue: #00f3ff;
+            --neon-purple: #bc00ff;
+            --dark-bg: #000;
+            --card-bg: #111;
+            --header-height: 250px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: var(--dark-bg); color: white; overflow-x: hidden; text-align: center; }
+
+        /* Header Styles */
+        header {
+            position: fixed;
+            top: 0; left: 0; width: 100%;
+            height: var(--header-height);
+            z-index: 1000;
+            background: #000;
+            border-bottom: 3px solid var(--pink);
+            overflow: hidden;
+        }
+
+        .poster-img { 
+            width: 100%; height: 180px; object-fit: cover; 
+            display: block; opacity: 0.6;
+        }
+
+        .header-overlay {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            background: linear-gradient(transparent, #000);
+            padding: 15px;
+        }
+
+        .header-overlay h1 { font-size: 1.2rem; letter-spacing: 2px; text-transform: uppercase; }
+        .header-overlay p { font-size: 13px; color: var(--pink); font-weight: bold; }
+
+        /* --- FIXED PLAYER BOX (Top Fix) --- */
+        .player-box {
+            display: none; 
+            position: fixed;
+            top: 0 !important; /* Hamesha top par rahega */
+            left: 0; 
+            width: 100%;
+            height: var(--header-height) !important;
+            background: #000;
+            z-index: 2000; 
+        }
+        
+        .player-content { 
+            width: 100%; height: 100%;
+            position: relative; overflow: hidden;
+            background: #000;
+        }
+        
+        .yt-iframe-wrapper {
+            position: absolute;
+            top: -50px; left: 0; width: 100%; height: calc(100% + 100px); 
+            z-index: 1; opacity: 0; transition: opacity 0.3s ease;
+        }
+        
+        .yt-iframe-wrapper.active { opacity: 1; }
+        #youtube-player { width: 100%; height: 100%; border:none; }
+        
+        .buffering-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 3; display: none;
+            flex-direction: column; align-items: center; justify-content: center;
+        }
+        .loader {
+            width: 40px; height: 40px;
+            border: 3px solid rgba(255, 65, 108, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--pink);
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .bottom-ui { 
+            position: absolute; bottom: 0; left: 0; right: 0;
+            background: rgba(0,0,0,0.85); padding: 8px 15px; 
+            z-index: 10; opacity: 0; transition: opacity 0.3s ease;
+            border-top: 1px solid #222;
+        }
+        
+        .player-content.show-ui .bottom-ui { opacity: 1; }
+        .p-bar { width: 100%; height: 6px; background: rgba(255,255,255,0.2); cursor: pointer; margin-bottom: 5px; border-radius: 10px; }
+        .p-fill { height: 100%; background: var(--pink); width: 0%; border-radius: 10px; }
+        
+        .controls-row { display: flex; justify-content: space-between; align-items: center; }
+        .icon-btn { background: none; border: none; color: white; font-size: 18px; cursor: pointer; }
+        .v-time { font-size: 11px; color: #eee; }
+        
+        .close-player-btn {
+            position: absolute; top: 5px; right: 10px; width: 30px; height: 30px; 
+            border-radius: 50%; background: rgba(0,0,0,0.7); border: 1px solid var(--pink);
+            color: white; cursor: pointer; z-index: 11; opacity: 0;
+        }
+        .player-content.show-ui .close-player-btn { opacity: 1; }
+
+        /* Container & Grid */
+        .container { 
+            padding: 15px; max-width: 1100px; 
+            margin: calc(var(--header-height) + 20px) auto 0 auto; 
+        }
+
+        .section-title {
+            font-size: 20px; font-weight: bold; border-left: 4px solid var(--pink);
+            padding-left: 12px; margin: 25px 0; text-align: left;
+        }
+
+        .episode-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+
+        .ep-card {
+            background: #111; border-radius: 10px; overflow: hidden;
+            border: 1px solid #333; transition: 0.4s;
+            position: relative; padding: 2.5px; cursor: pointer;
+        }
+
+        .ep-card.active {
+            border: none;
+            background: linear-gradient(45deg, var(--pink), var(--neon-blue), var(--neon-purple), var(--pink));
+            background-size: 400% 400%;
+            animation: neonFlow 3s ease infinite;
+            box-shadow: 0 0 15px rgba(255, 65, 108, 0.5);
+            transform: scale(1.02);
+        }
+
+        @keyframes neonFlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .ep-inner { background: #111; border-radius: 8px; overflow: hidden; height: 100%; position: relative; z-index: 1; }
+        .ep-upper { width: 100%; aspect-ratio: 16/9; overflow: hidden; }
+        .ep-upper img { width: 100%; height: 100%; object-fit: cover; }
+        .ep-lower { padding: 10px; font-size: 12px; color: white; font-weight: 500; text-align: center; }
+
+        @media (min-width: 768px) { 
+            .episode-grid { grid-template-columns: repeat(4, 1fr); gap: 20px; }
+            :root { --header-height: 450px; }
+            .poster-img { height: 380px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <img src="https://upload.wikimedia.org/wikipedia/en/f/f6/Titlecardofishqbaaaz.jpg" class="poster-img">
+        <div class="header-overlay">
+            <h1>ISHQBAAZ</h1>
+            <p>STAR PLUS HD Serial •</p>
+        </div>
+    </header>
+
+    <div class="player-box" id="playerBox">
+        <div class="player-content" id="playerArea">
+            <div class="yt-iframe-wrapper" id="ytWrapper">
+                <div id="youtube-player"></div>
+            </div>
+            <div class="buffering-screen" id="bufferingScreen">
+                <div class="loader"></div>
+                <div style="color:var(--pink); margin-top:10px; font-size:12px;">Loading...</div>
+            </div>
+            <button class="close-player-btn" onclick="closePlayer()">✕</button>
+            <div style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:5;" onclick="toggleUI()"></div>
+            <div class="bottom-ui">
+                <div class="p-bar" id="progressBar" onclick="seek(event)">
+                    <div class="p-fill" id="pFill"></div>
+                </div>
+                <div class="controls-row">
+                    <div style="display:flex; gap:15px; align-items:center;">
+                        <button class="icon-btn" onclick="prevEp()">⏮</button>
+                        <button class="icon-btn" onclick="playPause()" id="playIcon">⏸</button>
+                        <button class="icon-btn" onclick="nextEp()">⏭</button>
+                        <span class="v-time"><span id="currTime">0:00</span> / <span id="totalTime">0:00</span></span>
+                    </div>
+                    <button class="icon-btn" onclick="toggleFullscreen()">⛶</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2 class="section-title">Select Episode</h2>
+        <div class="episode-grid" id="episodeGrid"></div>
+        <div style="margin-top:30px; color:#555; font-size:12px;">Powered By: 🩷~𝑺𝒚𝒆𝒅 𝑴𝒖𝒛𝒂𝒎𝒎𝒊𝒍 𝑺𝒉𝒂𝒉~🩷</div>
+    </div>
+
+    <script>
+        const CUSTOM_THUMBNAIL = "https://upload.wikimedia.org/wikipedia/en/f/f6/Titlecardofishqbaaaz.jpg";
+        const EPISODES = [
+            
+  { id: "5BGElT4zxtQ", title: "Episode 1" },
+  { id: "bzKcJvSyT2o", title: "Episode 2" },
+  { id: "5PihpGZt4k0", title: "Episode 3" },
+  { id: "KoWu7vlDHaM", title: "Episode 4" },
+  { id: "juaDibpCOqQ", title: "Episode 5" },
+  { id: "9fpzYkHOCeo", title: "Episode 6" },
+  { id: "jnIo7BLihss", title: "Episode 7" },
+  { id: "UAm511Ao5mM", title: "Episode 8" },
+  { id: "1tAP-jh9Db4", title: "Episode 9" },
+  { id: "iXmd4OuO0V8", title: "Episode 10" },
+  { id: "xfhJ9BHc3fA", title: "Episode 11" },
+  { id: "H7PlPX16UiQ", title: "Episode 12" },
+  { id: "xejRnF6y7Vs", title: "Episode 13" },
+  { id: "4OnlB06Or64", title: "Episode 14" },
+  { id: "Eqf40ZBNfqk", title: "Episode 15" },
+  { id: "008rLCiG6F4", title: "Episode 16" },
+  { id: "jkae5FRyIXw", title: "Episode 17" },
+  { id: "GVx9w3LhSQg", title: "Episode 18" },
+  { id: "-A58WNfyggg", title: "Episode 19" },
+  { id: "VtZEc8tA9OA", title: "Episode 20" },
+  { id: "7ap94rVM-c8", title: "Episode 21" },
+  { id: "Rlr1MM810ls", title: "Episode 22" },
+  { id: "0gfP7kpCduw", title: "Episode 23" },
+  { id: "tWL_hBU5y-U", title: "Episode 24" },
+  { id: "m35UVjiZkzY", title: "Episode 25" },
+  { id: "IDCY5Y0Iz2Q", title: "Episode 26" },
+  { id: "-3c2T1GidMA", title: "Episode 27" },
+  { id: "tabCUPihQGY", title: "Episode 28" },
+  { id: "XSjTQ52oCXA", title: "Episode 29" },
+  { id: "XrbcvOa7yIM", title: "Episode 30" },
+  { id: "Ssz3tUqcrss", title: "Episode 31" },
+  { id: "sZ3XJjSKTbE", title: "Episode 32" },
+  { id: "5MjUXjSpFDo", title: "Episode 33" },
+  { id: "VRdU6KhaMjE", title: "Episode 34" },
+  { id: "OqwG4U3QTLs", title: "Episode 35" },
+  { id: "sc5uy59hXRE", title: "Episode 36" },
+  { id: "w9Hb64OkfNA", title: "Episode 37" },
+  { id: "rzuUK14qPvo", title: "Episode 38" },
+  { id: "vDE_sl4neZ4", title: "Episode 39" },
+  { id: "b_8bcoQF9So", title: "Episode 40" },
+  { id: "-C6kFLCBEnY", title: "Episode 41" },
+  { id: "XngRxEiOL1o", title: "Episode 42" },
+  { id: "ZZsJ13Pshws", title: "Episode 43" },
+  { id: "MfxU8Fn8UOU", title: "Episode 44" },
+  { id: "DSRu4WQKPMM", title: "Episode 45" },
+  { id: "fkMLuKQx6a0", title: "Episode 46" },
+  { id: "_EqfSX1iCd4", title: "Episode 47" },
+  { id: "t06FkI-4584", title: "Episode 48" },
+  { id: "MzitIkIa1Nw", title: "Episode 49" },
+  { id: "k1HGHOaiq08", title: "Episode 50" },
+  { id: "GK5UPM_f0MQ", title: "Episode 51" },
+  { id: "w3dtKvMRozw", title: "Episode 52" },
+  { id: "7jaSHnaQEpk", title: "Episode 53" },
+  { id: "5I15SEe6h_Q", title: "Episode 54" },
+  { id: "kYhd7Lnvqnc", title: "Episode 55" },
+  { id: "rWQHuRP2wy0", title: "Episode 56" },
+  { id: "dZ5iVYLdnlE", title: "Episode 57" },
+  { id: "wptRruXE6JY", title: "Episode 58" },
+  { id: "egaReMoF1KE", title: "Episode 59" },
+  { id: "VraTLYIptlw", title: "Episode 60" },
+  { id: "xP3zeV2-ITs", title: "Episode 61" },
+  { id: "cfrOYUc-i0Y", title: "Episode 62" },
+  { id: "w0glVRr2huo", title: "Episode 63" },
+  { id: "9bPWjqbSKfc", title: "Episode 64" },
+  { id: "kccBXVzvS54", title: "Episode 65" },
+  { id: "JzG0W4IlzZ0", title: "Episode 66" },
+  { id: "7-5UvGX3NME", title: "Episode 67" },
+  { id: "OtVKiKl0C_g", title: "Episode 68" },
+  { id: "wgNIpQY9gCY", title: "Episode 69" },
+  { id: "dWK17C0deeg", title: "Episode 70" },
+  { id: "A8JI0Q1xNo4", title: "Episode 71" },
+  { id: "5uFGke2xgUg", title: "Episode 72" },
+  { id: "xqmjZW98dgs", title: "Episode 73" },
+  { id: "mWgHj1KTrZY", title: "Episode 74" },
+  { id: "u5ZH-5IohbA", title: "Episode 75" },
+  { id: "7DPOJ_6Q-s0", title: "Episode 76" },
+  { id: "KkHmSEQdBbg", title: "Episode 77" },
+  { id: "1Kg1baOfyRY", title: "Episode 78" },
+  { id: "1PtCGsUU8fE", title: "Episode 79" },
+  { id: "o09flw_WY9o", title: "Episode 80" },
+  { id: "MlIVOZ49g0M", title: "Episode 81" },
+  { id: "4zdDwon1di0", title: "Episode 82" },
+  { id: "JYh6YdwJ2BQ", title: "Episode 83" },
+  { id: "rVxUjk4cmWg", title: "Episode 84" },
+  { id: "wknVeN27ab0", title: "Episode 85" },
+  { id: "VJ90WGaPHP4", title: "Episode 86" },
+  { id: "nO2ePLUjPhw", title: "Episode 87" },
+  { id: "c9wYVbqEe0Y", title: "Episode 88" },
+  { id: "Xk_G1ByFD3M", title: "Episode 89" },
+  { id: "iE-2s_w7MQM", title: "Episode 90" },
+  { id: "h49dzajTqHA", title: "Episode 91" },
+  { id: "HcT6-xlM5mQ", title: "Episode 92" },
+  { id: "rXNwZU1_F5I", title: "Episode 93" },
+  { id: "Jmqvxp4nHPU", title: "Episode 94" },
+  { id: "JUfSniCFpoU", title: "Episode 95" },
+  { id: "1hfjNv9N0UM", title: "Episode 96" },
+  { id: "Q5E6TdcWi1g", title: "Episode 97" },
+  { id: "S5p4icx3kVQ", title: "Episode 98" },
+  { id: "UQ6FKEGQYzk", title: "Episode 99" },
+  { id: "45vp1DSw2_Y", title: "Episode 100" },
+  { id: "r-q9zTcL2G0", title: "Episode 101" },
+  { id: "WPilJtRy6-o", title: "Episode 102" },
+  { id: "nlFCkA8lTfE", title: "Episode 103" },
+  { id: "80WLEXvyS8k", title: "Episode 104" },
+  { id: "Ccq3rqO1jgc", title: "Episode 105" },
+  { id: "daEOmr02f6M", title: "Episode 106" },
+  { id: "vXbnfKkxW7k", title: "Episode 107" },
+  { id: "WDOMHNCnq3E", title: "Episode 108" },
+  { id: "rz55TwZJzFE", title: "Episode 109" },
+  { id: "EKia12-BVy4", title: "Episode 110" },
+  { id: "hFb_pg-SAyk", title: "Episode 111" },
+  { id: "2BZujAlApWQ", title: "Episode 112" },
+  { id: "HzZDTgcyhNM", title: "Episode 113" },
+  { id: "v6xvIruoJYw", title: "Episode 114" },
+  { id: "8XQnRuvYmGE", title: "Episode 115" },
+  { id: "kDYJYEera_E", title: "Episode 116" },
+  { id: "JVxExQH7ijs", title: "Episode 117" },
+  { id: "e-3dgKotf_U", title: "Episode 118" },
+  { id: "87xsDpTBz8M", title: "Episode 119" },
+  { id: "mKizC0TaOdg", title: "Episode 120" },
+  { id: "NH-QaIZ-TrI", title: "Episode 121" },
+  { id: "UiBe42OyvTY", title: "Episode 122" },
+  { id: "oD5m5sFN3xQ", title: "Episode 123" },
+  { id: "lATVe9ysLPk", title: "Episode 124" },
+  { id: "rbYyDqYoxdU", title: "Episode 125" },
+  { id: "Ca5JcPSUXCY", title: "Episode 126" },
+  { id: "GoswbwMAzRE", title: "Episode 127" },
+  { id: "_oK8jZj1eQM", title: "Episode 128" },
+  { id: "xr_hYgBZtro", title: "Episode 129" },
+  { id: "bylp2zFfNto", title: "Episode 130" },
+  { id: "4t9VAwgrLM4", title: "Episode 131" },
+  { id: "dBH8n4QmGj4", title: "Episode 132" },
+  { id: "f3OVwr4qM8o", title: "Episode 133" },
+  { id: "DKL83zw4mx4", title: "Episode 134" },
+  { id: "OHXIAkr7_xw", title: "Episode 135" },
+  { id: "wk1oAOhX8Wk", title: "Episode 136" },
+  { id: "BNn2p-W5pAw", title: "Episode 137" },
+  { id: "g1kEfsI3N9I", title: "Episode 138" },
+  { id: "ncDGq8OCxBE", title: "Episode 139" },
+  { id: "jsS0YfS3b7w", title: "Episode 140" },
+  { id: "4Ska3tBc0Vk", title: "Episode 141" },
+  { id: "HNku3Df5s58", title: "Episode 142" },
+  { id: "zSTQHJeX7Gg", title: "Episode 143" },
+  { id: "ULnupeRjIV8", title: "Episode 144" },
+  { id: "lYibqh8NLq0", title: "Episode 145" },
+  { id: "vwyeO22kp_8", title: "Episode 146" },
+  { id: "ECxPpECckYY", title: "Episode 147" },
+  { id: "NvM4FCkSn7Y", title: "Episode 148" },
+  { id: "tkYtFEKcB_M", title: "Episode 149" },
+  { id: "hBeKR3w3gZ8", title: "Episode 150" },
+  { id: "Q98CEUcL_PM", title: "Episode 151" },
+  { id: "p8OUh9HEXwM", title: "Episode 152" },
+  { id: "J36Qo051e6s", title: "Episode 153" },
+  { id: "bzsmvQbaCEE", title: "Episode 154" },
+  { id: "lrBbjM_upRo", title: "Episode 155" },
+  { id: "yQlZsrVF4oo", title: "Episode 156" },
+  { id: "Bz9oNzZinCA", title: "Episode 157" },
+  { id: "TgDwjs6JA7Q", title: "Episode 158" },
+  { id: "1syjDm4ZzGU", title: "Episode 159" },
+  { id: "BbLsjylXdqI", title: "Episode 160" },
+  { id: "F-Lm7HA2uGE", title: "Episode 161" },
+  { id: "mAr8MbGSp1Y", title: "Episode 162" },
+  { id: "0LFM4EKPGXM", title: "Episode 163" },
+  { id: "SwaPD26PJ3Y", title: "Episode 164" },
+  { id: "5za0cWh7bEw", title: "Episode 165" },
+  { id: "RnIXwGzvk4A", title: "Episode 166" },
+  { id: "jg5dC4lYugU", title: "Episode 167" },
+  { id: "v6EEkdo7hb8", title: "Episode 168" },
+  { id: "I95qX56uRB0", title: "Episode 169" },
+  { id: "1o31PAWxhNU", title: "Episode 170" },
+  { id: "K9jphx_u_vk", title: "Episode 171" },
+  { id: "0mWEDAiTAmo", title: "Episode 172" },
+  { id: "m6O0UJE0nrc", title: "Episode 173" },
+  { id: "A6YQIZmRDRk", title: "Episode 174" },
+  { id: "fjP0VeHs2LI", title: "Episode 175" },
+  { id: "XDJ8O-cz5ww", title: "Episode 176" },
+  { id: "qoBEjvuBL8I", title: "Episode 177" },
+  { id: "oI0rxdZX2io", title: "Episode 178" },
+  { id: "ZkF-ZDrhoOo", title: "Episode 179" },
+  { id: "zawv_2_v5Lg", title: "Episode 180" },
+  { id: "-m-PuyZvZBA", title: "Episode 181" },
+  { id: "iQPJF71H4kk", title: "Episode 182" },
+  { id: "Zbg-GcEkxcg", title: "Episode 183" },
+  { id: "ZQWuPmot09k", title: "Episode 184" },
+  { id: "Vem6VEQdVas", title: "Episode 185" },
+  { id: "qpIbswDsSK4", title: "Episode 186" },
+  { id: "WgHE1sOLW1M", title: "Episode 187" },
+  { id: "zXPJsoMmQsU", title: "Episode 188" },
+  { id: "q-J_hnaMhcQ", title: "Episode 190" },
+  { id: "rfk3CEmitZQ", title: "Episode 191" },
+  { id: "KVtz4f9y2Iw", title: "Episode 192" },
+  { id: "YWFlaS-1Myw", title: "Episode 193" },
+  { id: "1DwWCx23p7Q", title: "Episode 194" },
+  { id: "mT25fy5-deI", title: "Episode 195" },
+  { id: "A59GOaOBOC4", title: "Episode 196" },
+  { id: "oXRxa1RfEKg", title: "Episode 197" },
+  { id: "6YKBSWbspf0", title: "Episode 198" },
+  { id: "EPkEPD6cdoA", title: "Episode 199" },
+  { id: "mH2ngrmz7_A", title: "Episode 200" },
+  { id: "cYl9z23Cbcs", title: "Episode 201" },
+  { id: "8nNCBMXX8cI", title: "Episode 202" },
+  { id: "UAgmcDqoDzk", title: "Episode 203" },
+  { id: "11vpr19sEHw", title: "Episode 204" },
+  { id: "sbiHVeQHPj4", title: "Episode 205" },
+  { id: "gfTCyMBXOqo", title: "Episode 206" },
+  { id: "P_V2Wt0GXCk", title: "Episode 207" },
+  { id: "1KZt8B1SMBE", title: "Episode 208" },
+  { id: "DKeUAklf15Q", title: "Episode 209" },
+  { id: "S5SfcoAN6w4", title: "Episode 210" },
+  { id: "7OBr7mbv5JY", title: "Episode 211" },
+  { id: "zqPWMzvhLh4", title: "Episode 212" },
+  { id: "MLtErV2fdSQ", title: "Episode 213" },
+  { id: "V-V7EV62fSs", title: "Episode 214" },
+  { id: "x0iyxOkxId4", title: "Episode 215" },
+  { id: "B0C1qyHQud0", title: "Episode 216" },
+  { id: "gZAntxuMtAI", title: "Episode 217" },
+  { id: "IGnFZCkpBzo", title: "Episode 218" },
+  { id: "_CXpf4w1h34", title: "Episode 219" },
+  { id: "jAQE6nk9dAU", title: "Episode 220" },
+  { id: "vYXR5EJZS20", title: "Episode 221" },
+  { id: "ma_vtAuqj-0", title: "Episode 222" },
+  { id: "I6ExRbdjJQ8", title: "Episode 223" },
+  { id: "ZywM_QNhBs0", title: "Episode 224" },
+  { id: "7hAtVtlC6us", title: "Episode 225" },
+  { id: "zj__3GE8J-o", title: "Episode 226" },
+  { id: "7icjuVkmnwU", title: "Episode 227" },
+  { id: "lQQzAPTigWM", title: "Episode 228" },
+  { id: "IyCDUXdd3CI", title: "Episode 229" },
+  { id: "dgQQGEkhafA", title: "Episode 230" },
+  { id: "DvyvOOiaNSQ", title: "Episode 231" },
+  { id: "7bUCLVTn7Gg", title: "Episode 232" },
+  { id: "nglXeTEdzqA", title: "Episode 233" },
+  { id: "x7Or-iyIkJk", title: "Episode 234" },
+  { id: "eaa6igqjJ3k", title: "Episode 235" },
+  { id: "mCM2eezmRvw", title: "Episode 236" },
+  { id: "MhIvJHdULn0", title: "Episode 240" },
+  { id: "TuKZNkruqJU", title: "Episode 241" },
+  { id: "k1wfb1OSC0M", title: "Episode 242" },
+  { id: "oxQ-y5j194w", title: "Episode 243" },
+  { id: "HAbjSpWRMaA", title: "Episode 245" },
+  { id: "PUNjiP3s2IA", title: "Episode 246" },
+  { id: "WCTc5R0_xd4", title: "Episode 247" },
+  { id: "BTXymvW5s3o", title: "Episode 248" },
+  { id: "eGeW6egEgdY", title: "Episode 249" },
+  { id: "lC0mm59g40c", title: "Episode 250" },
+  { id: "xrMpPBA8qv4", title: "Episode 251" },
+  { id: "hrPXkFYgFaU", title: "Episode 252" },
+  { id: "VzvN9X9Ndw4", title: "Episode 253" },
+  { id: "yqXkJ4y0m7Y", title: "Episode 254" },
+  { id: "qGnqzqXWPi4", title: "Episode 255" },
+  { id: "SRN8XYt4Slw", title: "Episode 256" },
+  { id: "O9BdMbmD6HQ", title: "Episode 257" },
+  { id: "2fLsSsDPdiM", title: "Episode 258" },
+  { id: "2KpiqHh6otM", title: "Episode 259" },
+  { id: "noLPLIedG7A", title: "Episode 260" },
+  { id: "7fM0pQcjgDU", title: "Episode 261" },
+  { id: "DWkJpX37Rbk", title: "Episode 262" },
+  { id: "Ja0r1v7L2Vs", title: "Episode 263" },
+  { id: "rE8E2VVj1rk", title: "Episode 264" },
+  { id: "GPiaYQBug-o", title: "Episode 265" },
+  { id: "EDI0aoI2mVc", title: "Episode 266" },
+  { id: "XsbO-sNR1mo", title: "Episode 267" },
+  { id: "ULGqDZEusaU", title: "Episode 268" },
+  { id: "fZTSim_dKR0", title: "Episode 269" },
+  { id: "zbzQorY8DcQ", title: "Episode 270" },
+  { id: "9KGeiTA3-g0", title: "Episode 271" },
+  { id: "7Vfl7vpVEl8", title: "Episode 272" },
+  { id: "gO1zx9wVnNk", title: "Episode 273" },
+  { id: "-Dn6Uxe1bK4", title: "Episode 274" },
+  { id: "NxmAoZLjQoI", title: "Episode 275" },
+  { id: "9meJ3DWQHjA", title: "Episode 276" },
+  { id: "vGQiEJCAXVo", title: "Episode 277" },
+  { id: "0Nkgw_fUhE8", title: "Episode 278" },
+  { id: "uDlcXF6tTpw", title: "Episode 279" },
+  { id: "LV8QaRafC7I", title: "Episode 280" },
+  { id: "uh-wS8BRot0", title: "Episode 283" },
+  { id: "DedP4ALXfGg", title: "Episode 284" },
+  { id: "-jB0WeSybwU", title: "Episode 284" },
+  { id: "gbJvg4feL5s", title: "Episode 285" },
+  { id: "v-vJNeCnuVs", title: "Episode 285" },
+  { id: "CiOjuueWR1U", title: "Episode 286" },
+  { id: "SVkvJ0VBdAw", title: "Episode 286" },
+  { id: "HTFaBx0rI7o", title: "Episode 287" },
+  { id: "ccgMCYyIcFQ", title: "Episode 290" },
+  { id: "Qwdl42f7U8w", title: "Episode 291" },
+  { id: "KvoZN3FHN30", title: "Episode 292" },
+  { id: "cgmi2NsDxb8", title: "Episode 293" },
+  { id: "CCPbtRg9DUI", title: "Episode 294" },
+  { id: "Z5iz9IxLLSc", title: "Episode 295" },
+  { id: "N5UWdEpY6-g", title: "Episode 296" },
+  { id: "cdveIqWRhvg", title: "Episode 297" },
+  { id: "hJMNSLG0PuE", title: "Episode 298" },
+  { id: "L_RA5m6UbFE", title: "Episode 299" },
+  { id: "uAvHQAT5I8A", title: "Episode 300" },
+  { id: "YV9DBoBMc4g", title: "Episode 301" },
+  { id: "AdeDSGgZ8qc", title: "Episode 302" },
+  { id: "7rPA2zFZ72M", title: "Episode 303" },
+  { id: "-SHoAvfAhJM", title: "Episode 304" },
+  { id: "rrUoqsh10YQ", title: "Episode 305" },
+  { id: "mR9ouu2v7-A", title: "Episode 306" },
+  { id: "pmEnRrlqtlc", title: "Episode 307" },
+  { id: "qskPhtWKUMg", title: "Episode 308" },
+  { id: "kThCsJLzdJY", title: "Episode 309" },
+  { id: "wJjVuiehOnE", title: "Episode 310" },
+  { id: "flTrV963vuI", title: "Episode 311" },
+  { id: "q2p3gjtrlBg", title: "Episode 312" },
+  { id: "D7MsKZOUbnQ", title: "Episode 313" },
+  { id: "ADBOLaW8Rcs", title: "Episode 314" },
+  { id: "ZUPl_w_WPbo", title: "Episode 315" },
+  { id: "ZlF9UYr4CN8", title: "Episode 316" },
+  { id: "7Q0PyEKr4bo", title: "Episode 316" },
+  { id: "Pz_OVUuBKAs", title: "Episode 317" },
+  { id: "IYmehnRb4pg", title: "Episode 317" },
+  { id: "2RWBC0fhDXE", title: "Episode 318" },
+  { id: "kjFEfUSOeH4", title: "Episode 318" },
+  { id: "6wfWeEnXudA", title: "Episode 319" },
+  { id: "l984UjZuRyk", title: "Episode 319" },
+  { id: "0EurSVi_-HU", title: "Episode 320" },
+  { id: "fDwK7Y-VcRU", title: "Episode 320" },
+  { id: "-aYq4mz8iT4", title: "Episode 321" },
+  { id: "diiVVcAABS8", title: "Episode 322" },
+  { id: "wDvp1HL6LTU", title: "Episode 322" },
+  { id: "XHQivgnYoJA", title: "Episode 323" },
+  { id: "aGnxSlMS5DA", title: "Episode 323" },
+  { id: "U5alsvd5aaM", title: "Episode 324" },
+  { id: "o_wetNrLlZA", title: "Episode 325" },
+  { id: "AslGHk1C2fg", title: "Episode 325" },
+  { id: "kX13jnCZS-Y", title: "Episode 326" },
+  { id: "HtnXrXv4aEo", title: "Episode 326" },
+  { id: "e37u45sN62E", title: "Episode 327" },
+  { id: "LaabcohQ-_I", title: "Episode 327" },
+  { id: "uN3OkeDzdh4", title: "Episode 328" },
+  { id: "yzPRtrKiOrs", title: "Episode 328" },
+  { id: "ALn_NRS8oBM", title: "Episode 329" },
+  { id: "iSces3HHx2c", title: "Episode 329" },
+  { id: "wmXtSmc439E", title: "Episode 330" },
+  { id: "7E8OeBfv-j4", title: "Episode 330" },
+  { id: "xdUyj2fUnj0", title: "Episode 331" },
+  { id: "ifyrxuGHTQo", title: "Episode 331" },
+  { id: "_Upi6VDNzEU", title: "Episode 332" },
+  { id: "Y8_vosxngVg", title: "Episode 332" },
+  { id: "1SYacYgzhw4", title: "Episode 333" },
+  { id: "F-uWucbO_qc", title: "Episode 333" },
+  { id: "IfHtNxVnMzY", title: "Episode 334" },
+  { id: "ncQhQ_OXhtQ", title: "Episode 334" },
+  { id: "Od55lt6Ph5Y", title: "Episode 335" },
+  { id: "7XqRH9pUs5k", title: "Episode 335" },
+  { id: "j0reh_UWL9o", title: "Episode 336" },
+  { id: "UEiKQWCF5ZM", title: "Episode 336" },
+  { id: "2-CDYukUc38", title: "Episode 337" },
+  { id: "Kw0VyRwARjM", title: "Episode 337" },
+  { id: "FuPXy5cdrIQ", title: "Episode 338" },
+  { id: "vaaXHqEiKqI", title: "Episode 338" },
+  { id: "_EWajLr4w1k", title: "Episode 339" },
+  { id: "IYLkuVU-YfU", title: "Episode 339" },
+  { id: "rtYWGBSnbME", title: "Episode 340" },
+  { id: "AyxSQqw5v98", title: "Episode 340" },
+  { id: "aA9u7_zSEmA", title: "Episode 341" },
+  { id: "WMiPXs9pAek", title: "Episode 341" },
+  { id: "ocepZZy8oKI", title: "Episode 342" },
+  { id: "EP1HY8q8cfU", title: "Episode 342" },
+  { id: "FE5Duu6VIGQ", title: "Episode 343" },
+  { id: "TEQi9jXa5FE", title: "Episode 343" },
+  { id: "SpxfNA9aQOI", title: "Episode 344" },
+  { id: "3QyGRTITyig", title: "Episode 344" },
+  { id: "XFxdPVGxXO4", title: "Episode 345" },
+  { id: "ybL6kDrsEYw", title: "Episode 345" },
+  { id: "3hY8yPXAMoE", title: "Episode 345" },
+  { id: "mGOB6toJ-ME", title: "Episode 346" },
+  { id: "Y6PK4kiyq8w", title: "Episode 347" },
+  { id: "wJJpBizL-H8", title: "Episode 347" },
+  { id: "TEqTvR3q_qU", title: "Episode 348" },
+  { id: "zepuZt6UpOY", title: "Episode 348" },
+  { id: "KqQ6BV5P0vk", title: "Episode 349" },
+  { id: "Ot2-Qy30MNk", title: "Episode 349" },
+  { id: "Ftg8KgL07BY", title: "Episode 350" },
+  { id: "xpF1LGZfg28", title: "Episode 350" },
+  { id: "GYFIYnKoKXA", title: "Episode 351" },
+  { id: "1gXBv-ANXRU", title: "Episode 351" },
+  { id: "-9GUDunBp-Y", title: "Episode 352" },
+  { id: "UPesiiWOF4M", title: "Episode 352" },
+  { id: "zvNinkEcLLk", title: "Episode 353" },
+  { id: "Ozi7el0Fl9w", title: "Episode 353" },
+  { id: "NX35L1UB95Q", title: "Episode 354" },
+  { id: "w9EEtMSmmNU", title: "Episode 354" },
+  { id: "Ek6zO28z1hQ", title: "Episode 355" },
+  { id: "8PMz1m_WY4g", title: "Episode 355" },
+  { id: "cvXwlFxn15w", title: "Episode 356" },
+  { id: "jpwKuN1Ygr8", title: "Episode 356" },
+  { id: "bb2UnG7gVb8", title: "Episode 357" },
+  { id: "Wg4QlHHUZ5U", title: "Episode 357" },
+  { id: "wnqQq59FHf8", title: "Episode 358" },
+  { id: "tA6bhYAb84A", title: "Episode 358" },
+  { id: "v7r5kKB3SGc", title: "Episode 359" },
+  { id: "Snt0QuxUltY", title: "Episode 359" },
+  { id: "FlcNDxRNPxU", title: "Episode 360" },
+  { id: "EVrQEP4ayvs", title: "Episode 360" },
+  { id: "KwLwiDX-q-4", title: "Episode 361" },
+  { id: "PbjDcNHmBYU", title: "Episode 361" },
+  { id: "jRtT76-xwu4", title: "Episode 363" },
+  { id: "JQI5uopHE_U", title: "Episode 363" },
+  { id: "RDCMCkdLnrk", title: "Episode 364" },
+  { id: "Jb1whctV1Y4", title: "Episode 364" },
+  { id: "K0NvtRJ0TzE", title: "Episode 365" },
+  { id: "f4xu6Kpi22s", title: "Episode 366" },
+  { id: "yg8p2yM5GyE", title: "Episode 367" },
+  { id: "4wtyztCWG9I", title: "Episode 368" },
+  { id: "1_pD7ePECuQ", title: "Episode 369" },
+  { id: "ZVlp4OCBKMo", title: "Episode 370" },
+  { id: "ELOYh8eGLPQ", title: "Episode 371" },
+  { id: "i1anRoMWFD4", title: "Episode 372" },
+  { id: "oEHQqbrkYnA", title: "Episode 373" },
+  { id: "hrnUcQBR2po", title: "Episode 374" },
+  { id: "Vu-FH9Kz7sw", title: "Episode 375" },
+  { id: "wIp0JUDG4Jw", title: "Episode 376" },
+  { id: "G5N5yAnLrqM", title: "Episode 377" },
+  { id: "uFHihqjzJaM", title: "Episode 378" },
+  { id: "38IUK1c6etY", title: "Episode 379" },
+  { id: "PptGego-wFQ", title: "Episode 380" },
+  { id: "sZQaB-2AQwE", title: "Episode 381" },
+  { id: "z2wb4kE3M0s", title: "Episode 382" },
+  { id: "uSBh6j-ysX4", title: "Episode 383" },
+  { id: "mpM6Ji1BkOA", title: "Episode 384" },
+  { id: "VXWnR94vxp8", title: "Episode 385" },
+  { id: "Krocveirhhc", title: "Episode 386" },
+  { id: "D4H22_lbR6I", title: "Episode 387" },
+  { id: "AWvXoxZYi9Y", title: "Episode 388" },
+  { id: "i1fbOoYTE7E", title: "Episode 389" },
+  { id: "gRE6U2c2xFY", title: "Episode 390" },
+  { id: "l2nMoT_LElU", title: "Episode 392" },
+  { id: "nLfVkBeeZEc", title: "Episode 393" },
+  { id: "7YlV_EP9hD8", title: "Episode 394" },
+  { id: "9eztIxUykic", title: "Episode 395" },
+  { id: "wpMe8oix-MY", title: "Episode 396" },
+  { id: "sE-y5ulqEmI", title: "Episode 397" },
+  { id: "ykG0oBlyomA", title: "Episode 398" },
+  { id: "_TASGhqYStg", title: "Episode 399" },
+  { id: "dtJFw8BbD_E", title: "Episode 400" },
+  { id: "XaZVAUQ6eKM", title: "Episode 401" },
+  { id: "4yd1ZJJ9S9U", title: "Episode 402" },
+  { id: "wCKSygnqEAo", title: "Episode 403" },
+  { id: "lwzHXrGH0w8", title: "Episode 404" },
+  { id: "2YO2iAJuf3A", title: "Episode 405" },
+  { id: "LKs-DamhXj0", title: "Episode 406" },
+  { id: "x8BZqmMCI_g", title: "Episode 407" },
+  { id: "0gFx_0NrgeE", title: "Episode 408" },
+  { id: "MuN2eY_jSkE", title: "Episode 409" },
+  { id: "U4zZkHGYeUE", title: "Episode 410" },
+  { id: "fJxJFVFhAYc", title: "Episode 411" },
+  { id: "cqPrkGkueoA", title: "Episode 412" },
+  { id: "uk4EtHt7foA", title: "Episode 413" },
+  { id: "wqq6bwSJbog", title: "Episode 414" },
+  { id: "zKCBuGDPCCU", title: "Episode 415" },
+  { id: "vQX-BlQvELk", title: "Episode 416" },
+  { id: "0_w1a8NSNPs", title: "Episode 417" },
+  { id: "NFa_huF7m_g", title: "Episode 418" },
+  { id: "nY_xZjUr64w", title: "Episode 419" },
+  { id: "dGxdF6LJJMQ", title: "Episode 420" },
+  { id: "Hafxx4Z-Fp8", title: "Episode 421" },
+  { id: "tmNclRae6rM", title: "Episode 422" },
+  { id: "kJfmX36BOl8", title: "Episode 423" },
+  { id: "fwp2p51E8RM", title: "Episode 424" },
+  { id: "KUNpvFnmm9Y", title: "Episode 425" },
+  { id: "ZAwSlD2X7rQ", title: "Episode 426" },
+  { id: "pmCHfRoDicU", title: "Episode 427" },
+  { id: "O-lhhdy7X2g", title: "Episode 428" },
+  { id: "E7mgTwdShV8", title: "Episode 429" },
+  { id: "PAbh9E3Nk-Q", title: "Episode 430" },
+  { id: "LDWfOjqRuGM", title: "Episode 431" },
+  { id: "7-1bI4VXucY", title: "Episode 432" },
+  { id: "WpRgqC-JcCs", title: "Episode 433" },
+  { id: "9yXLFyeVtHA", title: "Episode 434" },
+  { id: "6D3MzFVgJo5", title: "Episode 435" },
+  { id: "wAk9OIsHEw4", title: "Episode 436" },
+  { id: "jXDGxuTeytE", title: "Episode 437" },
+  { id: "VFo9DHL4y74", title: "Episode 438" },
+  { id: "W0npUO993oM", title: "Episode 439" },
+  { id: "GCfwD5_mCQM", title: "Episode 440" },
+  { id: "Peucai71JdI", title: "Episode 441" },
+  { id: "JKhj8pEz4iM", title: "Episode 442" },
+  { id: "oKtVUcq8zc8", title: "Episode 443" },
+  { id: "l0MwNJ40nGg", title: "Episode 444" },
+  { id: "wgV6-iwI4po", title: "Episode 445" },
+  { id: "AUksjxRww9g", title: "Episode 446" },
+  { id: "1fpqIKjRqiM", title: "Episode 447" },
+  { id: "XkUUtAXAybw", title: "Episode 448" },
+  { id: "s4iRdZx25Vk", title: "Episode 449" },
+  { id: "N0ttOeUqYUM", title: "Episode 450" },
+  { id: "Tc2awJvfn14", title: "Episode 451" },
+  { id: "XFZ2AXyBn0g", title: "Episode 452" },
+  { id: "vtCqSCt6Svg", title: "Episode 453" },
+  { id: "mjpiGsMjL5U", title: "Episode 454" },
+  { id: "-VmZCH-NakY", title: "Episode 455" },
+  { id: "dwNyxN__tbI", title: "Episode 456" },
+  { id: "vf_YHCCvKXo", title: "Episode 457" },
+  { id: "rsmzJxNDtpc", title: "Episode 458" },
+  { id: "kSijYeFdSaQ", title: "Episode 459" },
+  { id: "Qsrgu5P7TLU", title: "Episode 460" },
+  { id: "KMpaMgEePSU", title: "Episode 461" },
+  { id: "GbXkxw8lSTo", title: "Episode 462" },
+  { id: "-epHwy9k9ng", title: "Episode 463" },
+  { id: "7l7BHiyFlkU", title: "Episode 464" },
+  { id: "PwFGr1ndCk8", title: "Episode 465" },
+  { id: "dXE2kkUzsJE", title: "Episode 466" },
+  { id: "Aknu4gsipis", title: "Episode 467" },
+  { id: "HoY_idJUyxU", title: "Episode 468" },
+  { id: "_d9UULXlb2k", title: "Episode 469" },
+  { id: "DCjAm4-zyII", title: "Episode 470" },
+  { id: "BoW_gW4mkAY", title: "Episode 471" },
+  { id: "66oAiWSzMpI", title: "Episode 472" },
+  { id: "LEBJsAkVRHI", title: "Episode 473" },
+  { id: "vRj89VBsFq8", title: "Episode 474" },
+  { id: "bqMZcGrvHII", title: "Episode 475" },
+  { id: "JXlTbAdqB2M", title: "Episode 476" },
+  { id: "C4eFZaMFH5c", title: "Episode 477" },
+  { id: "faBjQ04Hq9Q", title: "Episode 478" },
+  { id: "266jdRn9qLw", title: "Episode 479" },
+  { id: "W9rTqIql0Ks", title: "Episode 480" },
+  { id: "4656HBSH5oM", title: "Episode 481" },
+  { id: "Fkt3PMR_CkE", title: "Episode 482" },
+  { id: "Fd8xjoAxlzs", title: "Episode 483" },
+  { id: "BeShDcFPbow", title: "Episode 484" },
+  { id: "MXlGj0Sq5mk", title: "Episode 485" },
+  { id: "yzHptHqtHmI", title: "Episode 486" },
+  { id: "i92uL5C8JdM", title: "Episode 487" },
+  { id: "MveJWHaM4Ig", title: "Episode 488" },
+  { id: "CKeGfRWlgi4", title: "Episode 489" },
+  { id: "J4Ti7Xr5xjc", title: "Episode 490" },
+  { id: "2ZmT-Q715PE", title: "Episode 491" },
+  { id: "H8tNx-2kI0o", title: "Episode 492" },
+  { id: "iFhXZRXIA5M", title: "Episode 493" },
+  { id: "uSfZii1RU3s", title: "Episode 494" },
+  { id: "N1IeywQCpdo", title: "Episode 495" },
+  { id: "I8mX-EcWD6U", title: "Episode 496" },
+  { id: "0fVre3z6f7I", title: "Episode 498" },
+  { id: "N1MaXdGqkAg", title: "Episode 499" },
+  { id: "bV_3-r5mn2g", title: "Episode 500" },
+  { id: "cjmzBANYTQk", title: "Episode 501" },
+  { id: "5M1J4NDrWJQ", title: "Episode 502" },
+  { id: "wUhLzZZdxSc", title: "Episode 503" },
+  { id: "dRuadm8js4U", title: "Episode 504" },
+  { id: "-x_b76Pgc5g", title: "Episode 505" },
+  { id: "VZw__X3Nwoo", title: "Episode 506" },
+  { id: "A4h3vC2AAJg", title: "Episode 507" },
+  { id: "-Y4upGkqvis", title: "Episode 508" },
+  { id: "Hes9w0_ClPA", title: "Episode 509" },
+  { id: "9fvMb92mbKQ", title: "Episode 510" },
+  { id: "pNS4mVArBH8", title: "Episode 511" },
+  { id: "jElrNdd2vOk", title: "Episode 512" },
+  { id: "tqW0QB53EKI", title: "Episode 513" },
+  { id: "tZLktA5iYC0", title: "Episode 514" },
+  { id: "Q0VDRee2w1c", title: "Episode 515" },
+  { id: "W0QxAgC3QmQ", title: "Episode 516" },
+  { id: "2KcVVvZ-Osk", title: "Episode 517" },
+  { id: "ZjCGfjexWAM", title: "Episode 518" },
+  { id: "0T-YNjGibjA", title: "Episode 519" },
+  { id: "peuZsu2i3Cw", title: "Episode 520" },
+  { id: "D4HkXMocAQw", title: "Episode 521" },
+  { id: "Vho24XwKp48", title: "Episode 522" },
+  { id: "urLAk_Jwa94", title: "Episode 523" },
+  { id: "_zLFy4WZ-fM", title: "Episode 524" },
+  { id: "RuNpkvWkouM", title: "Episode 525" },
+  { id: "TSvjnKXRRI4", title: "Episode 526" },
+  { id: "o2_9KpadKvo", title: "Episode 527" },
+  { id: "-0dj2HOr5Io", title: "Episode 528" },
+  { id: "yblNDTRmqbM", title: "Episode 529" },
+  { id: "oBXHXuF03Fw", title: "Episode 530" },
+  { id: "9H3pf6NBXrI", title: "Episode 531" },
+  { id: "EV4PRy5rN_Q", title: "Episode 532" },
+  { id: "6imBGS9gY_c", title: "Episode 533" },
+  { id: "-KmvwKDful4", title: "Episode 534" },
+  { id: "36-0NfoSUP4", title: "Episode 535" },
+  { id: "WOokhl4HMR8", title: "Episode 536" },
+  { id: "t3-3jFsBTGM", title: "Episode 537" },
+  { id: "gjN1j7oknqM", title: "Episode 538" },
+  { id: "i_R3Rn2TG00", title: "Episode 539" },
+  { id: "U0jOR-bCDDA", title: "Episode 540" },
+  { id: "oocbkcDLETc", title: "Episode 541" },
+  { id: "Sc6mprIqiBA", title: "Episode 543" },
+  { id: "kAbQR4RtEyQ", title: "Episode 544" },
+  { id: "-eZwBNyc8lY", title: "Episode 545" },
+  { id: "l319QZ4dP-U", title: "Episode 546" },
+  { id: "lg17QoQ-T-0", title: "Episode 547" },
+  { id: "5Kb8pRmD3UA", title: "Episode 548" },
+  { id: "gjtQGJKEHPE", title: "Episode 549" },
+  { id: "00Kywqu0xIw", title: "Episode 550" },
+  { id: "b-pY7Nuc_v8", title: "Episode 551" },
+  { id: "gvlMw4LDbwE", title: "Episode 552" },
+  { id: "Lay5dmyX-PI", title: "Episode 553" },
+  { id: "UrCVf_U6h_w", title: "Episode 554" },
+  { id: "2RaX-Tw_XpQ", title: "Episode 555" },
+  { id: "zu2a7g3qgjQ", title: "Episode 556" },
+  { id: "MOpD-8ZsR0g", title: "Episode 557" },
+  { id: "tf0DFzxnS68", title: "Episode 558" },
+  { id: "ZByj88H-0WU", title: "Episode 559" },
+  { id: "741BRdRCUCo", title: "Episode 560" },
+  { id: "NzxONNBqwSs", title: "Episode 561" },
+  { id: "ndNT1e-Y5f4", title: "Episode 562" },
+  { id: "zQcJjEFQ-3M", title: "Episode 563" },
+  { id: "fsL3CHzS0yE", title: "Episode 564" },
+  { id: "6ZTD58fdZiQ", title: "Episode 565" },
+  { id: "aixil_dQnkg", title: "Episode 566" },
+  { id: "-ZMsVO5NJ1M", title: "Episode 567" },
+  { id: "zTAyK53h3KQ", title: "Episode 568" },
+  { id: "_qkgSaQOPuI", title: "Episode 569" },
+  { id: "OzFyO_7T6Jg", title: "Episode 570" },
+  { id: "z6D3fDe2Opw", title: "Episode 571" },
+  { id: "1lmh-S1XhKY", title: "Episode 572" },
+  { id: "P6_Y4_fs3yc", title: "Episode 573" },
+  { id: "KNYhc3JZ0Nk", title: "Episode 574" },
+  { id: "RcXmBuVnfao", title: "Episode 575" },
+  { id: "JoOzKVOK6qg", title: "Episode 576" },
+  { id: "SmCEiyhwBTc", title: "Episode 577" },
+  { id: "FMRQDjmgUUc", title: "Episode 578" },
+  { id: "BuLfQXHJUkI", title: "Episode 579" },
+  { id: "AhGOyYzHFqk", title: "Episode 580" },
+  { id: "e62sGY505Fo", title: "Episode 581" },
+  { id: "GyFnP99YEmo", title: "Episode 582" },
+  { id: "RutunklbeMs", title: "Episode 583" },
+  { id: "JduZlymZqbc", title: "Episode 584" },
+  { id: "T4vqt3H_T2A", title: "Episode 585" },
+  { id: "mS-Qtpkf9FY", title: "Episode 586" },
+  { id: "-muOzikwPn4", title: "Episode 587" },
+  { id: "Jw3i-7VVSxM", title: "Episode 588" },
+  { id: "T-unG5D3HJc", title: "Episode 589" },
+  { id: "lyvN4eB4woo", title: "Episode 590" },
+  { id: "poe3CU7XqwU", title: "Episode 591" },
+  { id: "B52_TUj2dZQ", title: "Episode 592" },
+  { id: "zi3qNPBLTVI", title: "Episode 593" },
+  { id: "AboamXJygRs", title: "Episode 594" },
+  { id: "GRRqO_ZrpsI", title: "Episode 595" },
+  { id: "TS65QXfPa8I", title: "Episode 596" },
+  { id: "CfrRD1OtZe0", title: "Episode 597" },
+  { id: "QDkRXnfNwIA", title: "Episode 598" },
+  { id: "kiH3a9l45GE", title: "Episode 599" },
+  { id: "EYwdJVg8Cdg", title: "Episode 600" },
+  { id: "DAglDex4zJs", title: "Episode 601" },
+  { id: "hwA6vvk8B60", title: "Episode 602" },
+  { id: "PteybkKDduU", title: "Episode 603" },
+  { id: "UMY9s6z3c5M", title: "Episode 604" },
+  { id: "YH0h38YNaQA", title: "Episode 605" },
+  { id: "_E7UWQZ4ySE", title: "Episode 606" },
+  { id: "23_yfc23KSI", title: "Episode 607" },
+  { id: "GzZvNUlqIhc", title: "Episode 608" },
+  { id: "Jr-zCEKoXWY", title: "Episode 609" },
+  { id: "atTnmKWFPoE", title: "Episode 610" },
+  { id: "JCCpWqfLXI8", title: "Episode 611" },
+  { id: "b-5rjimaumo", title: "Episode 612" },
+  { id: "PKIdYNmOPec", title: "Episode 613" },
+  { id: "AShr4o3sCmI", title: "Episode 614" },
+  { id: "TxDtO-z0Il0", title: "Episode 615" },
+  { id: "xSTYmoQ4H4c", title: "Episode 616" },
+  { id: "dwDovmL5SJA", title: "Episode 617" },
+  { id: "yDcm2yU18vE", title: "Episode 618" },
+  { id: "WZFsjOFCl40", title: "Episode 619" },
+  { id: "SD5OOCKS3Ug", title: "Episode 620" },
+  { id: "nvZhizqfYAw", title: "Episode 621" },
+  { id: "gP_wnOoP5zk", title: "Episode 622" },
+  { id: "sZLqO-CaIA4", title: "Episode 624" },
+  { id: "MgCuJGcdQ-c", title: "Episode 625" },
+  { id: "8yxgX18V6KU", title: "Episode 626" },
+  { id: "OIjc_dPt1e4", title: "Episode 627" },
+  { id: "-PmmS27lVxw", title: "Episode 628" },
+  { id: "pwrJezTzpCg", title: "Episode 629" },
+  { id: "jn5rP6I-fhE", title: "Episode 630" },
+  { id: "r8570IGyftc", title: "Episode 631" },
+  { id: "g_JTyX3_DsI", title: "Episode 632" },
+  { id: "j_gxVqirGwI", title: "Episode 633" },
+  { id: "wypf4VR4Wus", title: "Episode 634" },
+  { id: "YGPUqGJ5ny8", title: "Episode 635" },
+  { id: "fcM0NJVej2Q", title: "Episode 636" },
+  { id: "ApcjjFaxQ5E", title: "Episode 637" },
+  { id: "nPuXPCriKhk", title: "Episode 638" },
+  { id: "NLcqzXDFXr0", title: "Episode 639" },
+  { id: "ywXZ6EW5-Zw", title: "Episode 640" },
+  { id: "kBtBVE1zJy8", title: "Episode 641" },
+  { id: "4kQBuxH5l7Q", title: "Episode 642" },
+  { id: "1teQTMOZCys", title: "Episode 643" },
+  { id: "DH7vwuh8zjA", title: "Episode 644" },
+  { id: "YbMkogO4NF0", title: "Episode 645" },
+  { id: "qJh0AZzFCy4", title: "Episode 646" },
+  { id: "MxW4vGrJBoU", title: "Episode 647" },
+  { id: "IcI71K74SCM", title: "Episode 648" },
+  { id: "yWL69YsvHVo", title: "Episode 649" },
+  { id: "Rj0ibGhhPYs", title: "Episode 650" },
+  { id: "CyRaNfCZvU4", title: "Episode 651" },
+  { id: "6RB1IWteu6s", title: "Episode 652" },
+  { id: "AORjcOvVbxM", title: "Episode 653" },
+  { id: "CgHj6CZhJjQ", title: "Episode 654" },
+  { id: "8xo52fS-mRQ", title: "Episode 655" },
+  { id: "kz-31DO940M", title: "Episode 656" },
+  { id: "Aw738pSGUms", title: "Episode 657" },
+  { id: "RXx12VKYjn8", title: "Episode 658" },
+  { id: "tiyTom1mwKM", title: "Episode 659" },
+  { id: "-23FJSWXcz8", title: "Episode 660" },
+  { id: "Y-jXwxcVmb4", title: "Episode 661" },
+  { id: "A83tBmZY9kY", title: "Episode 662" },
+  { id: "SCEydHrtEcM", title: "Episode 663" },
+  { id: "90XXmJp9Fqo", title: "Episode 664" },
+  { id: "0VglYLATSHo", title: "Episode 665" },
+  { id: "owsc3HIZiDo", title: "Episode 666" },
+  { id: "0fnCqnk8Z24", title: "Episode 667" },
+  { id: "XpTFn2zK8nE", title: "Episode 668" },
+  { id: "otyKv8Sqdxw", title: "Episode 669" },
+  { id: "vmU2fPoQIN0", title: "Episode 670" },
+  { id: "Vi9uJaJwL-g", title: "Episode 672" },
+  { id: "IyXSmzskH5c", title: "Episode 673" },
+  { id: "lJSgyJyKedg", title: "Episode 674" },
+  { id: "pGI3tgjZ19E", title: "Episode 675" },
+  { id: "bPO7bOQIVKg", title: "Episode 676" },
+  { id: "4a3pJxn6rDc", title: "Episode 677" },
+  { id: "VwBNY02HuUI", title: "Episode 678" },
+  { id: "XPZGA0hCTqQ", title: "Episode 679" },
+  { id: "bh5D4quBELw", title: "Episode 680" },
+  { id: "Ea4Zid5VzyE", title: "Episode 681" },
+  { id: "DFwqaLpzrWQ", title: "Episode 682" },
+  { id: "KQCr1Y_NMzQ", title: "Episode 683" },
+  { id: "_CUGHz4GNF8", title: "Episode 684" },
+  { id: "WGPOd48bcWI", title: "Episode 685" },
+  { id: "EW8t0KbAoT4", title: "Episode 686" },
+  { id: "YTifCe3cpXw", title: "Episode 687" },
+  { id: "Bs3nNrEwTMs", title: "Episode 688" },
+  { id: "EHOQ2DonXZY", title: "Episode 689" },
+  { id: "wTSqkUpBbQQ", title: "Episode 690" },
+  { id: "5pByUkfb0Jc", title: "Episode 691" },
+  { id: "-YDbuyBGF5E", title: "Episode 692" },
+  { id: "pRQk0ouf5o8", title: "Episode 693" },
+  { id: "5U8amZsEnRU", title: "Episode 694" },
+  { id: "QqIocTGxOtU", title: "Episode 695" },
+  { id: "yJi4CnTyhMI", title: "Episode 696" },
+  { id: "LwjFUh_giyQ", title: "Episode 697" },
+  { id: "AETf-5ijRz4", title: "Episode 698" },
+  { id: "1IFgvjrDJZ8", title: "Episode 699" },
+  { id: "eKwZXnnJT1A", title: "Episode 700" },
+  { id: "X_g-Fvotu5w", title: "Episode 701" },
+  { id: "4Hf5VrZjp7s", title: "Episode 702" },
+  { id: "4ou_yEEKA-U", title: "Episode 703" },
+  { id: "vip0GeM966E", title: "Episode 704" },
+  { id: "raQkzK1yBfg", title: "Episode 705" },
+  { id: "JPxQVcBdkUM", title: "Episode 706" },
+  { id: "nqB6lgr1zqk", title: "Episode 707" },
+  { id: "7DFGdLPsyO0", title: "Episode 708" },
+  { id: "OmNqISPLb70", title: "Episode 709" },
+  { id: "H4T9kBLsosU", title: "Episode 710" },
+  { id: "jxgK2T2uhd8", title: "Episode 711" },
+  { id: "rGy-QSvk1KE", title: "Episode 712" },
+  { id: "_ai_y5uJ_nQ", title: "Episode 713" },
+  { id: "iCRoxkTGeKA", title: "Episode 714" },
+  { id: "MuaPf_Q6fmA", title: "Episode 715" },
+  { id: "Akw6k_GncVw", title: "Episode 716" },
+  { id: "SvYEzhSOQ-U", title: "Episode 717" },
+  { id: "My76iRyFnVM", title: "Episode 718" },
+  { id: "IdVVzOtd4f4", title: "Episode 719" },
+  { id: "kdQewmM6SDg", title: "Episode 720" },
+  { id: "DBio3MUtGnc", title: "Episode 721" },
+  { id: "6HX8f8XmQek", title: "Episode 722" },
+  { id: "Z6o-In2WaKQ", title: "Episode 723" },
+  { id: "CS_k4dCpK8I", title: "Episode 724" },
+  { id: "srVn57REEEs", title: "Episode 725" },
+  { id: "oC7bhk54zAw", title: "Episode 726" },
+  { id: "iYNA-DPwkj4", title: "Episode 727" },
+  { id: "k21bfR5Opm4", title: "Episode 728" },
+  { id: "XXxodCyvVlQ", title: "Episode 729" },
+  { id: "Vx2AMkbmZKg", title: "Episode 730" },
+  { id: "q5yV-tGBKVk", title: "Episode 731" },
+  { id: "Cfxxlj4lHCE", title: "Episode 732" },
+  { id: "dVJuH1i8Ttc", title: "Episode 733" },
+  { id: "mGfhOW9gHpg", title: "Episode 734" },
+  { id: "xgpfOj8PF-k", title: "Episode 735" },
+  { id: "38troRpi-zo", title: "Episode 736" },
+  { id: "Cd_x654XWUg", title: "Episode 737" },
+  { id: "KTfoARKajtA", title: "Episode 738" },
+  { id: "RubpMqWZcoI", title: "Episode 739" },
+  { id: "_HXUxyanmv0", title: "Episode 740" },
+  { id: "GorTyuyfUHs", title: "Episode 741" },
+  { id: "HSA7e45MOuI", title: "Episode 742" },
+  { id: "v0fQMIVtMfE", title: "Episode 744" },
+  { id: "UR6Z1VsZzT0", title: "Episode 745" },
+  { id: "74hpg5wS5cI", title: "Episode 746" },
+  { id: "Oz-L3Ll0_Us", title: "Episode 747" },
+  { id: "WMixffkgGkc", title: "Episode 748" },
+  { id: "GyDHQKX-DBI", title: "Episode 749" },
+  { id: "quBURb_7YQY", title: "Episode 750" },
+  { id: "eMwGHzE3FwQ", title: "Episode 751" },
+  { id: "oTNxh9DafK8", title: "Episode 752" },
+  { id: "99DlcYVpPn4", title: "Episode 753" },
+  { id: "v5HskMhOqfo", title: "Episode 754" },
+  { id: "y5EpiN5NYdc", title: "Episode 755" },
+  { id: "-cbJlR0Pvr4", title: "Episode 756" },
+  { id: "pRGz7x5-C4o", title: "Episode 757" },
+  { id: "mIaJ-SwkXyg", title: "Episode 758" },
+  { id: "SexX28mnjaQ", title: "Episode 759" },
+  { id: "TknL2Nu59Ic", title: "Episode 760" }
+
+        ];
+
+        let player, currentIdx = 0, hideTimeout;
+
+        function renderEpisodeButtons() {
+            const grid = document.getElementById('episodeGrid');
+            grid.innerHTML = '';
+            EPISODES.forEach((ep, i) => {
+                const card = document.createElement('div');
+                card.className = 'ep-card';
+                card.id = 'ep-' + i;
+                card.onclick = () => openPlayer(i);
+                card.innerHTML = `
+                    <div class="ep-inner">
+                        <div class="ep-upper"><img src="${CUSTOM_THUMBNAIL}"></div>
+                        <div class="ep-lower">${ep.title}</div>
+                    </div>`;
+                grid.appendChild(card);
+            });
+        }
+
+        window.onload = () => {
+            renderEpisodeButtons();
+            const tag = document.createElement('script');
+            tag.src = "https://www.youtube.com/iframe_api";
+            document.head.appendChild(tag);
+        };
+
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('youtube-player', {
+                playerVars: { 'controls': 0, 'modestbranding': 1, 'rel': 0, 'playsinline': 1 },
+                events: { 'onStateChange': onStateChange }
+            });
+            setInterval(updateProgress, 500);
+        }
+
+        function openPlayer(i) {
+            document.querySelectorAll('.ep-card').forEach(el => el.classList.remove('active'));
+            document.getElementById('ep-' + i).classList.add('active');
+
+            currentIdx = i;
+            // Flex ki jagah block use kiya hai centering se bachne ke liye
+            document.getElementById('playerBox').style.display = 'block';
+            document.getElementById('bufferingScreen').style.display = 'flex';
+            if (player && player.loadVideoById) { 
+                player.loadVideoById(EPISODES[i].id); 
+            }
+            keepUIShown();
+        }
+
+        function closePlayer() { 
+            document.getElementById('playerBox').style.display = 'none'; 
+            player.stopVideo(); 
+        }
+
+        function onStateChange(event) {
+            if (event.data === 1 || event.data === -1) { 
+                document.getElementById('bufferingScreen').style.display = 'none';
+                document.getElementById('ytWrapper').classList.add('active');
+            }
+            if (event.data === 3) document.getElementById('bufferingScreen').style.display = 'flex';
+            if (event.data === 0) nextEp(); 
+        }
+
+        function updateProgress() {
+            if (player && player.getCurrentTime) {
+                const curr = player.getCurrentTime(), dur = player.getDuration();
+                if (dur > 0) {
+                    document.getElementById('pFill').style.width = (curr/dur*100) + '%';
+                    document.getElementById('currTime').innerText = format(curr);
+                    document.getElementById('totalTime').innerText = format(dur);
+                }
+            }
+        }
+
+        function format(s) { 
+            let m = Math.floor(s/60), sec = Math.floor(s%60); 
+            return m + ":" + (sec < 10 ? '0' : '') + sec; 
+        }
+
+        function toggleUI() {
+            const el = document.getElementById('playerArea');
+            el.classList.contains('show-ui') ? el.classList.remove('show-ui') : keepUIShown();
+        }
+
+        function keepUIShown() {
+            const el = document.getElementById('playerArea');
+            el.classList.add('show-ui');
+            clearTimeout(hideTimeout);
+            hideTimeout = setTimeout(() => el.classList.remove('show-ui'), 4000);
+        }
+
+        function playPause() { 
+            keepUIShown();
+            if (player.getPlayerState() === 1) { player.pauseVideo(); document.getElementById('playIcon').innerText = '▶'; }
+            else { player.playVideo(); document.getElementById('playIcon').innerText = '⏸'; }
+        }
+
+        function nextEp() { if(currentIdx < EPISODES.length - 1) openPlayer(currentIdx + 1); }
+        function prevEp() { if(currentIdx > 0) openPlayer(currentIdx - 1); }
+
+        function seek(e) { 
+            keepUIShown();
+            const rect = document.getElementById('progressBar').getBoundingClientRect(); 
+            player.seekTo(((e.clientX - rect.left) / rect.width) * player.getDuration()); 
+        }
+
+        function toggleFullscreen() {
+            const el = document.getElementById('playerArea');
+            if (!document.fullscreenElement) {
+                el.requestFullscreen().catch(() => {});
+            } else document.exitFullscreen();
+        }
+    </script>
+</body>
+</html>
